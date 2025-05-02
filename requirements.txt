@@ -1,0 +1,8 @@
+exiftool
+shutil
+hashlib
+re
+subprocess
+argparse
+json
+datetime
