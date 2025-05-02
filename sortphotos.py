@@ -7,7 +7,26 @@ import argparse
 import json
 from datetime import datetime
 
-TMP_DIR = "/tmp"
+TMP_DIR = "/tmp/sortphotos"  # Temporary directory for JSON files
+
+# Ensure TMP_DIR exists
+if not os.path.exists(TMP_DIR):
+    os.makedirs(TMP_DIR, exist_ok=True)
+
+DATE_FORMATS = [
+    "%Y:%m:%d %H:%M:%S",          # Standard EXIF format
+    "%Y-%m-%d %H:%M:%S",          # ISO-like format
+    "%Y/%m/%d %H:%M:%S",          # Slash-separated format
+    "%Y:%m:%d %H:%M:%S%z",        # EXIF format with timezone
+    "%Y-%m-%d %H:%M:%S%z",        # ISO format with timezone
+    "%Y/%m/%d %H:%M:%S%z",        # Slash-separated with timezone
+    "%Y-%m-%d",                   # Date only
+    "%Y/%m/%d",                   # Date only with slashes
+    "%d-%m-%Y %H:%M:%S",          # Day-Month-Year with time
+    "%d/%m/%Y %H:%M:%S",          # Day/Month/Year with time
+    "%d-%m-%Y",                   # Day-Month-Year
+    "%d/%m/%Y",                   # Day/Month/Year
+]
 
 def get_md5(file_path):
     """Compute the MD5 checksum of a file."""
@@ -27,6 +46,10 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
     result = subprocess.run(exiftool_cmd, capture_output=True, text=True)
 
     try:
+        # Check if the output is valid JSON
+        if not result.stdout.strip():
+            raise RuntimeError(f"ExifTool returned no output for {folder_path}")
+        
         json_data = json.loads(result.stdout)
         for file_data in json_data:
             file_path = file_data.get("SourceFile")
@@ -37,8 +60,19 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
                     group, tag = key.split(" ", 1) if " " in key else ("", key)
                     if group.strip() not in ignored_groups:
                         try:
-                            dates.append(datetime.strptime(value.strip(), "%Y:%m:%d %H:%M:%S"))
+                            # Attempt to parse the date value using multiple formats
+                            for date_format in DATE_FORMATS:
+                                try:
+                                    parsed_date = datetime.strptime(value.strip(), date_format)
+                                    # Normalize to offset-naive by removing timezone
+                                    if parsed_date.tzinfo is not None:
+                                        parsed_date = parsed_date.replace(tzinfo=None)
+                                    dates.append(parsed_date)
+                                    break  # Stop trying other formats once successful
+                                except ValueError:
+                                    continue  # Try the next format
                         except ValueError:
+                            print(f"Warning: Invalid date format for {file_path}: {value}")
                             continue  # Skip invalid formats
             
             metadata[file_path] = min(dates) if dates else None
@@ -47,17 +81,35 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
         with open(json_path, "w") as json_file:
             json.dump(metadata, json_file, default=str)
 
-    except json.JSONDecodeError:
-        print(f"Error extracting EXIF data for {folder_path}")
-    
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to parse JSON output from ExifTool for {folder_path}: {e}")
+        return None
+    except RuntimeError as e:
+        print(e)
+        return None
+
     return json_path
 
 def get_exif_date(file_path, json_path):
-    """Retrieve EXIF date from the cached JSON file."""
+    """Retrieve EXIF date from the cached JSON file and return it as a datetime object."""
     with open(json_path, "r") as json_file:
         metadata = json.load(json_file)
 
-    return metadata.get(file_path)
+    date_str = metadata.get(file_path)
+    if date_str:
+        for date_format in DATE_FORMATS:
+            try:
+                # Attempt to parse the date string with the current format
+                return datetime.strptime(date_str.strip(), date_format)
+            except ValueError:
+                continue  # Try the next format
+
+        # If no format matches, print an error and return None
+        print(f"Error parsing EXIF date for {file_path}: {date_str}")
+    
+    else:
+        print(f"Warning: No EXIF date found for {file_path}")
+    return None
 
 def extract_date_from_filename(filename):
     """Attempts to extract a date from filename using multiple formats."""
@@ -120,7 +172,19 @@ def move_or_copy_file(file_path, target_dir, file_date, copy=False):
 
 def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ignored_extensions, copy=False):
     """Processes all files recursively, caching EXIF data first."""
-    for root, _, files in os.walk(source_dir):
+    moved_count = 0
+    skipped_count = 0
+    error_count = 0
+
+    for root, dirs, files in os.walk(source_dir):
+        # Skip 'venv' directories
+        if "venv" in dirs:
+            print(f"Skipping 'venv' directory in {root}")
+            dirs.remove("venv")  # Prevent descending into 'venv'
+        if "." in dirs:
+            print(f"Skipping '.' directory in {root}")
+            dirs.remove(".")  # Prevent descending into 'venv'
+
         json_path = extract_exif_metadata(root, ignored_tags, ignored_groups)  # Cache EXIF data per subfolder
 
         for file_name in files:
@@ -128,20 +192,33 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ig
 
             if any(file_name.lower().endswith(ext.lower()) for ext in ignored_extensions):
                 print(f"Skipping {file_name}: Ignored extension.")
+                skipped_count += 1
                 continue  # Skip ignored extensions
             
             if os.path.isfile(file_path):
-                exif_date = get_exif_date(file_path, json_path)
-                filename_date = extract_date_from_filename(file_name)
+                try:
+                    exif_date = get_exif_date(file_path, json_path)
+                    filename_date = extract_date_from_filename(file_name)
 
-                # Use the oldest available date
-                file_date = min(filter(None, [exif_date, filename_date]), default=None)
+                    # Use the oldest available date
+                    file_date = min(filter(None, [exif_date, filename_date]), default=None)
 
-                if file_date:
-                    target_dir = os.path.join(destination_dir, f"{file_date.year}-{file_date.month:02d}-{file_date.day:02d}")
-                    move_or_copy_file(file_path, target_dir, file_date, copy)
-                else:
-                    print(f"Skipping {file_name}: No valid date found.")
+                    if file_date:
+                        target_dir = os.path.join(destination_dir, f"{file_date.year}-{file_date.month:02d}-{file_date.day:02d}")
+                        move_or_copy_file(file_path, target_dir, file_date, copy)
+                        moved_count += 1
+                    else:
+                        print(f"Skipping {file_path}: No valid date found. [{exif_date}, {filename_date}]")
+                        skipped_count += 1
+                except Exception as e:
+                    print(f"Error processing {file_path}: {e}")
+                    error_count += 1
+
+    # Print summary statistics
+    print("\nSummary:")
+    print(f"Moved files: {moved_count}")
+    print(f"Skipped files: {skipped_count}")
+    print(f"Errors: {error_count}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Organize files by oldest EXIF or filename date.")
