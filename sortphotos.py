@@ -55,9 +55,15 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
         for file_data in json_data:
             file_path = file_data.get("SourceFile")
             dates = []
+            image_width = None
+            image_height = None
+            duration = None
+            video_stream_type = None
 
-            # Extract date information
+            # Extract date information and other attributes
             for key, value in file_data.items():
+                print(f"Processing {key}: {value}")
+                # Ignore specified tags and groups
                 if isinstance(value, str) and key.strip() not in ignored_tags:
                     group, tag = key.split(" ", 1) if " " in key else ("", key)
                     if group.strip() not in ignored_groups:
@@ -76,14 +82,24 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
                         except ValueError:
                             print(f"Warning: Invalid date format for {file_path}: {value}")
                             continue  # Skip invalid formats
+
+                # Dynamically find and store specific attributes
+                if "ImageWidth" in key:
+                    image_width = value
+                elif "ImageHeight" in key:
+                    image_height = value
+                elif "Duration" in key:
+                    duration = value
+                elif "VideoStreamType" in key:
+                    video_stream_type = value
             
-            # Store the earliest date
+            # Store the metadata
             metadata[file_path] = {
                 "Date": min(dates).isoformat() if dates else None,
-                "Image Width": file_data.get("ImageWidth"),
-                "Image Height": file_data.get("ImageHeight"),
-                "Duration": file_data.get("Duration"),
-                "Video Stream Type": file_data.get("VideoStreamType")
+                "Image Width": image_width,
+                "Image Height": image_height,
+                "Duration": duration,
+                "Video Stream Type": video_stream_type
             }
 
         # Save metadata to a JSON file for fast lookup
