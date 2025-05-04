@@ -26,6 +26,7 @@ DATE_FORMATS = [
     "%d/%m/%Y %H:%M:%S",          # Day/Month/Year with time
     "%d-%m-%Y",                   # Day-Month-Year
     "%d/%m/%Y",                   # Day/Month/Year
+    "%Y-%m-%dT%H:%M:%S",          # ISO format with 'T' separator
 ]
 
 def get_md5(file_path):
@@ -42,7 +43,7 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
     json_path = os.path.join(TMP_DIR, f"exif_metadata_{os.path.basename(folder_path)}.json")
 
     # Run ExifTool for all files at once
-    exiftool_cmd = ["exiftool", "-json", "-time:all", "-s", "-G", folder_path]
+    exiftool_cmd = ["exiftool", "-json", "-time:all", "-s", "-G", "-ImageWidth", "-ImageHeight", "-Duration", "-VideoStreamType", folder_path]
     result = subprocess.run(exiftool_cmd, capture_output=True, text=True)
 
     try:
@@ -55,6 +56,7 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
             file_path = file_data.get("SourceFile")
             dates = []
 
+            # Extract date information
             for key, value in file_data.items():
                 if isinstance(value, str) and key.strip() not in ignored_tags:
                     group, tag = key.split(" ", 1) if " " in key else ("", key)
@@ -75,7 +77,14 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
                             print(f"Warning: Invalid date format for {file_path}: {value}")
                             continue  # Skip invalid formats
             
-            metadata[file_path] = min(dates) if dates else None
+            # Store the earliest date
+            metadata[file_path] = {
+                "Date": min(dates).isoformat() if dates else None,
+                "Image Width": file_data.get("ImageWidth"),
+                "Image Height": file_data.get("ImageHeight"),
+                "Duration": file_data.get("Duration"),
+                "Video Stream Type": file_data.get("VideoStreamType")
+            }
 
         # Save metadata to a JSON file for fast lookup
         with open(json_path, "w") as json_file:
@@ -95,7 +104,16 @@ def get_exif_date(file_path, json_path):
     with open(json_path, "r") as json_file:
         metadata = json.load(json_file)
 
-    date_str = metadata.get(file_path)
+    # Retrieve the metadata for the specific file
+    exif_data = metadata.get(file_path, {})
+    
+    # Ensure exif_data is a dictionary
+    if not isinstance(exif_data, dict):
+        print(f"Warning: Invalid metadata for {file_path}. Skipping EXIF date retrieval.")
+        return None
+
+    # Extract the 'Date' field
+    date_str = exif_data.get("Date")
     if date_str:
         for date_format in DATE_FORMATS:
             try:
@@ -106,7 +124,7 @@ def get_exif_date(file_path, json_path):
 
         # If no format matches, print an error and return None
         print(f"Error parsing EXIF date for {file_path}: {date_str}")
-    
+        print(exif_data)
     else:
         print(f"Warning: No EXIF date found for {file_path}")
     return None
@@ -158,19 +176,30 @@ def get_unique_filename(target_dir, filename, md5_hash):
         filename = f"{base_name}_{counter}{ext}"
         counter += 1
 
-def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
-    """Moves or copies file to correct 'year-month-day' directory, prefixing date, dimensions, duration, or codec to filename."""
+def move_or_copy_file(file_path, target_dir, file_date, json_path, source_dir, include_relative_path=False, copy=False):
+    """Moves or copies file to correct 'year-month-day' directory, prefixing date, dimensions, duration, codec, or relative path to filename."""
     os.makedirs(target_dir, exist_ok=True)
     md5_hash = get_md5(file_path)
 
     original_filename = os.path.basename(file_path)
     date_prefix = file_date.strftime("%Y-%m-%d")
 
+    # Check if the file date is in the future
+    today = datetime.now()
+    if file_date > today:
+        print(f"Error: File {file_path} has a future date ({date_prefix}). Skipping.")
+        return
+
     # Extract metadata from EXIF JSON
     metadata_info = ""
     with open(json_path, "r") as json_file:
         metadata = json.load(json_file)
         exif_data = metadata.get(file_path, {})
+
+        # Ensure exif_data is a dictionary
+        if not isinstance(exif_data, dict):
+            print(f"Warning: Invalid metadata for {file_path}. Skipping file.")
+            return
 
         # Check if the file is an image and extract dimensions
         image_width = exif_data.get("Image Width")
@@ -186,8 +215,14 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
         if codec:
             metadata_info = f"{metadata_info}_{codec.replace('/', '-').replace(' ', '_')}"  # Replace slashes and spaces for filename safety
 
+    # Include relative path in the filename if the option is enabled
+    relative_path_info = ""
+    if include_relative_path:
+        relative_path = os.path.relpath(os.path.dirname(file_path), source_dir)
+        relative_path_info = f"_{relative_path.replace(os.sep, '_')}"  # Replace path separators with underscores
+
     # Construct the new filename
-    new_filename = f"{date_prefix}{metadata_info}_{original_filename}"
+    new_filename = f"{date_prefix}{metadata_info}{relative_path_info}_{original_filename}"
 
     target_path = get_unique_filename(target_dir, new_filename, md5_hash)
     if target_path:
@@ -235,7 +270,7 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ig
 
                     if file_date:
                         target_dir = os.path.join(destination_dir, f"{file_date.year}-{file_date.month:02d}-{file_date.day:02d}")
-                        move_or_copy_file(file_path, target_dir, file_date, json_path, copy)
+                        move_or_copy_file(file_path, target_dir, file_date, json_path, source_dir, include_relative_path, copy)
                         moved_count += 1
                     else:
                         print(f"Skipping {file_path}: No valid date found. [{exif_date}, {filename_date}]")
