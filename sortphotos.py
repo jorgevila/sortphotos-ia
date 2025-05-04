@@ -151,7 +151,7 @@ def get_unique_filename(target_dir, filename, md5_hash):
         counter += 1
 
 def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
-    """Moves or copies file to correct 'year-month-day' directory, prefixing date, dimensions, or duration to filename."""
+    """Moves or copies file to correct 'year-month-day' directory, prefixing date, dimensions, duration, or codec to filename."""
     os.makedirs(target_dir, exist_ok=True)
     md5_hash = get_md5(file_path)
 
@@ -168,12 +168,15 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
         image_width = exif_data.get("Image Width")
         image_height = exif_data.get("Image Height")
         if image_width and image_height:
-            metadata_info = f"_{image_width}x{image_height}_"
+            metadata_info = f"_{image_width}x{image_height}"
 
-        # Check if the file is a video and extract duration
+        # Check if the file is a video and extract duration and codec
         duration = exif_data.get("Duration")
+        codec = exif_data.get("Codec")
         if duration:
-            metadata_info = f"{metadata_info}_{duration.replace(':', '-')}_"  # Replace colons with dashes for filename safety
+            metadata_info = f"{metadata_info}_{duration.replace(':', '-')}"  # Replace colons with dashes for filename safety
+        if codec:
+            metadata_info = f"{metadata_info}_{codec}"
 
     # Construct the new filename
     new_filename = f"{date_prefix}{metadata_info}_{original_filename}"
