@@ -151,25 +151,32 @@ def get_unique_filename(target_dir, filename, md5_hash):
         counter += 1
 
 def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
-    """Moves or copies file to correct 'year-month-day' directory, prefixing date and dimensions to filename."""
+    """Moves or copies file to correct 'year-month-day' directory, prefixing date, dimensions, or duration to filename."""
     os.makedirs(target_dir, exist_ok=True)
     md5_hash = get_md5(file_path)
 
     original_filename = os.path.basename(file_path)
     date_prefix = file_date.strftime("%Y-%m-%d")
 
-    # Extract image dimensions from EXIF metadata
-    dimensions = ""
+    # Extract metadata from EXIF JSON
+    metadata_info = ""
     with open(json_path, "r") as json_file:
         metadata = json.load(json_file)
         exif_data = metadata.get(file_path, {})
+
+        # Check if the file is an image and extract dimensions
         image_width = exif_data.get("Image Width")
         image_height = exif_data.get("Image Height")
         if image_width and image_height:
-            dimensions = f"_{image_width}x{image_height}_"
+            metadata_info = f"_{image_width}x{image_height}_"
+
+        # Check if the file is a video and extract duration
+        duration = exif_data.get("Duration")
+        if duration:
+            metadata_info = f"{metadata_info}_{duration.replace(':', '-')}_"  # Replace colons with dashes for filename safety
 
     # Construct the new filename
-    new_filename = f"{date_prefix}{dimensions}{original_filename}"
+    new_filename = f"{date_prefix}{metadata_info}_{original_filename}"
 
     target_path = get_unique_filename(target_dir, new_filename, md5_hash)
     if target_path:
