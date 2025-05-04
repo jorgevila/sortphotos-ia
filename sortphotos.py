@@ -62,7 +62,7 @@ def extract_exif_metadata(folder_path, ignored_tags, ignored_groups):
 
             # Extract date information and other attributes
             for key, value in file_data.items():
-                print(f"Processing {key}: {value}")
+                #print(f"Processing {key}: {value}")
                 # Ignore specified tags and groups
                 if isinstance(value, str) and key.strip() not in ignored_tags:
                     group, tag = key.split(" ", 1) if " " in key else ("", key)
