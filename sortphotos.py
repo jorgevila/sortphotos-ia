@@ -172,11 +172,11 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
 
         # Check if the file is a video and extract duration and codec
         duration = exif_data.get("Duration")
-        codec = exif_data.get("Codec")
+        codec = exif_data.get("Video Stream Type")
         if duration:
             metadata_info = f"{metadata_info}_{duration.replace(':', '-')}"  # Replace colons with dashes for filename safety
         if codec:
-            metadata_info = f"{metadata_info}_{codec}"
+            metadata_info = f"{metadata_info}_{codec.replace('/', '-').replace(' ', '_')}"  # Replace slashes and spaces for filename safety
 
     # Construct the new filename
     new_filename = f"{date_prefix}{metadata_info}_{original_filename}"
