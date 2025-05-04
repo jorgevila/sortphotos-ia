@@ -150,15 +150,27 @@ def get_unique_filename(target_dir, filename, md5_hash):
         filename = f"{base_name}_{counter}{ext}"
         counter += 1
 
-def move_or_copy_file(file_path, target_dir, file_date, copy=False):
-    """Moves or copies file to correct 'year-month-day' directory, prefixing date to filename."""
+def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
+    """Moves or copies file to correct 'year-month-day' directory, prefixing date and dimensions to filename."""
     os.makedirs(target_dir, exist_ok=True)
     md5_hash = get_md5(file_path)
 
     original_filename = os.path.basename(file_path)
     date_prefix = file_date.strftime("%Y-%m-%d")
-    new_filename = f"{date_prefix}_{original_filename}"
-    
+
+    # Extract image dimensions from EXIF metadata
+    dimensions = ""
+    with open(json_path, "r") as json_file:
+        metadata = json.load(json_file)
+        exif_data = metadata.get(file_path, {})
+        image_width = exif_data.get("Image Width")
+        image_height = exif_data.get("Image Height")
+        if image_width and image_height:
+            dimensions = f"_{image_width}x{image_height}_"
+
+    # Construct the new filename
+    new_filename = f"{date_prefix}{dimensions}{original_filename}"
+
     target_path = get_unique_filename(target_dir, new_filename, md5_hash)
     if target_path:
         if copy:
@@ -205,7 +217,7 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ig
 
                     if file_date:
                         target_dir = os.path.join(destination_dir, f"{file_date.year}-{file_date.month:02d}-{file_date.day:02d}")
-                        move_or_copy_file(file_path, target_dir, file_date, copy)
+                        move_or_copy_file(file_path, target_dir, file_date, json_path, copy)
                         moved_count += 1
                     else:
                         print(f"Skipping {file_path}: No valid date found. [{exif_date}, {filename_date}]")
