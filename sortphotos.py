@@ -192,7 +192,7 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, copy=False):
     else:
         print(f"Skipping {file_path}: Duplicate detected.")
 
-def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ignored_extensions, copy=False):
+def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ignored_extensions, copy=False, include_relative_path=False):
     """Processes all files recursively, caching EXIF data first."""
     moved_count = 0
     skipped_count = 0
@@ -250,6 +250,15 @@ if __name__ == "__main__":
     parser.add_argument("--ignore-groups", nargs="*", default=[], help="EXIF groups to ignore")
     parser.add_argument("--ignore-ext", nargs="*", default=[], help="File extensions to ignore")
     parser.add_argument("--copy", action="store_true", help="Copy files instead of moving them.")
+    parser.add_argument("--include-relative-path", action="store_true", help="Include the relative path in the filename.")
     args = parser.parse_args()
 
-    organize_files(args.source_dir, args.destination_dir, args.ignore_tags, args.ignore_groups, args.ignore_ext, args.copy)
+    organize_files(
+        args.source_dir,
+        args.destination_dir,
+        args.ignore_tags,
+        args.ignore_groups,
+        args.ignore_ext,
+        args.copy,
+        args.include_relative_path
+    )
