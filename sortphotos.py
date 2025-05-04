@@ -118,6 +118,8 @@ def extract_date_from_filename(filename):
         r"(\d{2})[-_\.]?(\d{2})[-_\.]?(\d{4})",    # DD-MM-YYYY, DD.MM.YYYY, DD_MM_YYYY
         r"(\d{2})[-_\.]?(\d{2})[-_\.]?(\d{2})",    # MM-DD-YY, DD-MM-YY (2-digit year)
         r"(\d{8})",                                # YYYYMMDD, DDMMYYYY, MMDDYYYY
+        r"(\d{4})[-_\.]?(\d{2})",                 # YYYY-MM, YYYY.MM, YYYY_MM
+        r"(\d{4})",                                # YYYY
         r"(\d{4})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{1,2})",  # YYYY Month DD
         r"(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})"  # DD Month YYYY
     ]
@@ -126,6 +128,12 @@ def extract_date_from_filename(filename):
         match = re.search(pattern, filename, re.IGNORECASE)
         if match:
             try:
+                # Handle YYYY-MM and YYYY patterns
+                if len(match.groups()) == 2:
+                    return datetime.strptime("-".join(match.groups()), "%Y-%m")
+                elif len(match.groups()) == 1:
+                    return datetime.strptime(match.group(1), "%Y")
+                # Handle other patterns
                 return datetime.strptime(" ".join(match.groups()), "%Y %m %d") if len(match.groups()) == 3 else datetime.strptime(match.group(1), "%Y%m%d")
             except ValueError:
                 continue  # Skip invalid matches
