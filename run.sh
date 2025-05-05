@@ -40,7 +40,7 @@ SOURCE_DIR="$1"
 DEST_DIR="$2"
 IGNORE_TAGS="${3:-'EXIF:CreateDate fileName'}"
 IGNORE_GROUPS="${4:-'ICC_Profile MakerNotes IPTC'}"
-IGNORE_EXT="${5:-'.txt .pdf'}"
+IGNORE_EXT="${5:-'.txt .zip .log .gz .tar .tgz .tbz2 .tbz .tb2 .tb2.gz .tb2.bz2'}"
 COPY_MODE="${6:-false}"
 INCLUDE_RELATIVE_PATH="${7:-false}"
 

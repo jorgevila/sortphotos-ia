@@ -264,18 +264,19 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ig
             dirs.remove("venv")  # Prevent descending into 'venv'
         if "." in dirs:
             print(f"Skipping '.' directory in {root}")
-            dirs.remove(".")  # Prevent descending into 'venv'
+            dirs.remove(".")  # Prevent descending into '.'
 
         json_path = extract_exif_metadata(root, ignored_tags, ignored_groups)  # Cache EXIF data per subfolder
 
         for file_name in files:
             file_path = os.path.join(root, file_name)
 
+            # Skip files with ignored extensions
             if any(file_name.lower().endswith(ext.lower()) for ext in ignored_extensions):
                 print(f"Skipping {file_name}: Ignored extension.")
                 skipped_count += 1
                 continue  # Skip ignored extensions
-            
+
             if os.path.isfile(file_path):
                 try:
                     exif_date = get_exif_date(file_path, json_path)
