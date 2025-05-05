@@ -279,7 +279,10 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ig
             if os.path.isfile(file_path):
                 try:
                     exif_date = get_exif_date(file_path, json_path)
-                    filename_date = extract_date_from_filename(file_name)
+                    
+                    filename_date = extract_date_from_filename(
+                        os.path.relpath(file_path, source_dir) if include_relative_path else file_name
+                    )
 
                     # Use the oldest available date
                     file_date = min(filter(None, [exif_date, filename_date]), default=None)
