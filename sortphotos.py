@@ -239,6 +239,10 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, source_dir, i
 
     # Construct the new filename
     new_filename = f"{date_prefix}{metadata_info}{relative_path_info}_{original_filename}"
+    new_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', new_filename)  # Sanitize filename
+    new_filename = re.sub(r'_{2,}', '_', new_filename)  # Remove duplicate underscores
+    new_filename = new_filename[:255]  # Limit filename length to 255 characters
+    new_filename = new_filename.strip('_')  # Remove trailing underscores
 
     target_path = get_unique_filename(target_dir, new_filename, md5_hash)
     if target_path:
