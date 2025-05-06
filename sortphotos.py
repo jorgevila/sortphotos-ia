@@ -146,31 +146,46 @@ def get_exif_date(file_path, json_path):
     return None
 
 def extract_date_from_filename(filename):
-    """Attempts to extract a date from filename using multiple formats."""
-    patterns = [
-        r"(\d{4})[-_\.]?(\d{2})[-_\.]?(\d{2})",    # YYYY-MM-DD, YYYY.MM.DD, YYYY_MM_DD
-        r"(\d{2})[-_\.]?(\d{2})[-_\.]?(\d{4})",    # DD-MM-YYYY, DD.MM.YYYY, DD_MM_YYYY
-        r"(\d{2})[-_\.]?(\d{2})[-_\.]?(\d{2})",    # MM-DD-YY, DD-MM-YY (2-digit year)
-        r"(\d{8})[^\d]",                                # YYYYMMDD, DDMMYYYY, MMDDYYYY
-        r"(\d{4})[-_\.]?(\d{2})",                 # YYYY-MM, YYYY.MM, YYYY_MM
-        r"(\d{4})[^\d]",                                # YYYY
-        r"(\d{4})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{1,2})",  # YYYY Month DD
-        r"(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})"  # DD Month YYYY
-    ]
-    
-    for pattern in patterns:
+    """Attempts to extract a date from filename using a map of patterns and multiple formats."""
+    # Define common separators and base patterns
+    separators = ["-", "_", r"\.", ""]  # Includes -, _, ., and no separator
+    base_patterns = {
+        r"(\d{4}){sep}(\d{2}){sep}(\d{2})": ["%Y-%m-%d", "%Y.%m.%d", "%Y_%m_%d"],  # YYYY-MM-DD, YYYY.MM.DD, YYYY_MM_DD
+        r"(\d{2}){sep}(\d{2}){sep}(\d{4})": ["%d-%m-%Y", "%d.%m.%Y", "%d_%m_%Y"],  # DD-MM-YYYY, DD.MM.YYYY, DD_MM_YYYY
+        r"(\d{2}){sep}(\d{2}){sep}(\d{2})": ["%m-%d-%y", "%d-%m-%y"],             # MM-DD-YY, DD-MM-YY (2-digit year)
+        r"(\d{8})": ["%Y%m%d","%d%m%Y"],                                                 # Compact format: YYYYMMDD
+        r"(\d{4}){sep}(\d{2})": ["%Y-%m", "%Y.%m", "%Y_%m"],                    # YYYY-MM, YYYY.MM, YYYY_MM
+    }
+
+    # Add static patterns for formats with text or fixed separators
+    pattern_format_map = {
+        r"(\d{4})": ["%Y"],  # Year only: YYYY
+        r"(\d{4})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{1,2})": ["%Y %b %d"],  # YYYY Month DD
+        r"(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})": ["%d %b %Y"],  # DD Month YYYY
+    }
+
+    # Dynamically generate patterns for base patterns with separators
+    for base_pattern, formats in base_patterns.items():
+        for sep in separators:
+            pattern = base_pattern.replace("{sep}", sep)
+            pattern_format_map[pattern] = formats
+
+    # Try to match each pattern and parse the date
+    for pattern, date_formats in pattern_format_map.items():
         match = re.search(pattern, filename, re.IGNORECASE)
         if match:
-            try:
-                # Handle YYYY-MM and YYYY patterns
-                if len(match.groups()) == 2:
-                    return datetime.strptime("-".join(match.groups()), "%Y-%m")
-                elif len(match.groups()) == 1:
-                    return datetime.strptime(match.group(1), "%Y")
-                # Handle other patterns
-                return datetime.strptime(" ".join(match.groups()), "%Y %m %d") if len(match.groups()) == 3 else datetime.strptime(match.group(1), "%Y%m%d")
-            except ValueError:
-                continue  # Skip invalid matches
+            for date_format in date_formats:
+                try:
+                    # Join groups with appropriate separators if needed
+                    date_string = "".join(match.groups())
+                    parsed_date = datetime.strptime(date_string, date_format)
+
+                    # Validate the date (must be greater than 1950 or less than today)
+                    today = datetime.now()
+                    if parsed_date.year > 1950 and parsed_date < today:
+                        return parsed_date
+                except ValueError:
+                    continue  # Try the next format for this pattern
 
     return None
 
