@@ -6,6 +6,7 @@ import subprocess
 import argparse
 import json
 from datetime import datetime
+from collections import OrderedDict
 
 TMP_DIR = "/tmp/sortphotos"  # Temporary directory for JSON files
 
@@ -146,45 +147,57 @@ def get_exif_date(file_path, json_path):
     return None
 
 def extract_date_from_filename(filename):
-    """Attempts to extract a date from filename using a map of patterns and multiple formats."""
+    """Attempts to extract a date from filename using an ordered map of patterns and multiple formats."""
     # Define common separators and base patterns
     separators = ["-", "_", r"\.", ""]  # Includes -, _, ., and no separator
     base_patterns = {
-        r"(\d{4}){sep}(\d{2}){sep}(\d{2})": ["%Y-%m-%d", "%Y.%m.%d", "%Y_%m_%d"],  # YYYY-MM-DD, YYYY.MM.DD, YYYY_MM_DD
-        r"(\d{2}){sep}(\d{2}){sep}(\d{4})": ["%d-%m-%Y", "%d.%m.%Y", "%d_%m_%Y"],  # DD-MM-YYYY, DD.MM.YYYY, DD_MM_YYYY
-        r"(\d{2}){sep}(\d{2}){sep}(\d{2})": ["%m-%d-%y", "%d-%m-%y"],             # MM-DD-YY, DD-MM-YY (2-digit year)
-        r"(\d{8})": ["%Y%m%d","%d%m%Y"],                                                 # Compact format: YYYYMMDD
-        r"(\d{4}){sep}(\d{2})": ["%Y-%m", "%Y.%m", "%Y_%m"],                    # YYYY-MM, YYYY.MM, YYYY_MM
+        r"(\d{4}{sep}\d{2}{sep}\d{2})": ["%Y{sep}%m{sep}%d"],  # YYYY-MM-DD, YYYY.MM.DD, YYYY_MM_DD
+        r"(\d{2}{sep}\d{2}{sep}\d{4})": ["%d{sep}%m{sep}%Y"],  # DD-MM-YYYY, DD.MM.YYYY, DD_MM_YYYY
+        r"(\d{2}{sep}\d{2}{sep}\d{2})": ["%m{sep}%d{sep}%y", "%d{sep}%m{sep}%y"],             # MM-DD-YY, DD-MM-YY (2-digit year)
+        r"(\d{4}{sep}\d{2})": ["%Y{sep}%m"],                     # YYYY-MM, YYYY.MM, YYYY_MM
     }
 
     # Add static patterns for formats with text or fixed separators
-    pattern_format_map = {
-        r"(\d{4})": ["%Y"],  # Year only: YYYY
-        r"(\d{4})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{1,2})": ["%Y %b %d"],  # YYYY Month DD
-        r"(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})": ["%d %b %Y"],  # DD Month YYYY
-    }
+    pattern_format_map = OrderedDict([
+        (r"(\d{4})", ["%Y"]),  # Year only: YYYY
+        (r"(\d{4}\s*Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec\s*\d{1,2})", ["%Y %b %d"]),  # YYYY Month DD
+        (r"(\d{1,2}\s*Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec\s*\d{4})", ["%d %b %Y"]),  # DD Month YYYY
+        (r"(\d{8})", ["%Y%m%d", "%d%m%Y"]),                                        # Compact format: YYYYMMDD
+    ])
 
     # Dynamically generate patterns for base patterns with separators
-    for base_pattern, formats in base_patterns.items():
+    for base_pattern, formats in reversed(base_patterns.items()):
         for sep in separators:
             pattern = base_pattern.replace("{sep}", sep)
-            pattern_format_map[pattern] = formats
+            base_formats = []
+            for base_format in formats:
+                format = base_format.replace("{sep}", sep)
+                base_formats.append(format)
+            pattern_format_map[pattern] = base_formats
 
     # Try to match each pattern and parse the date
-    for pattern, date_formats in pattern_format_map.items():
+    for pattern, date_formats in reversed(pattern_format_map.items()):
         match = re.search(pattern, filename, re.IGNORECASE)
+        print(f"Trying pattern: {pattern} in {filename}")
+        print(f"Match: {match}")
+        print(f"Date formats: {date_formats}")
+        # If a match is found, extract the date components
+        # and try to parse them with the corresponding formats
         if match:
             for date_format in date_formats:
+                print(f"Trying date format: {date_format}")
+                # Extract the matched groups and join them with the appropriate separator
                 try:
                     # Join groups with appropriate separators if needed
                     date_string = "".join(match.groups())
                     parsed_date = datetime.strptime(date_string, date_format)
-
+                    print(f"Parsed date: {parsed_date}")
                     # Validate the date (must be greater than 1950 or less than today)
                     today = datetime.now()
                     if parsed_date.year > 1950 and parsed_date < today:
                         return parsed_date
-                except ValueError:
+                except ValueError as e:
+                    print(f"Error parsing date with format {date_format}: {e}")
                     continue  # Try the next format for this pattern
 
     return None

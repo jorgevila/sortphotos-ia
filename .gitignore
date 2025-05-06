@@ -1012,3 +1012,4 @@ venv/lib/python3.12/site-packages/pip-24.0.dist-info/RECORD
 venv/lib/python3.12/site-packages/pip-24.0.dist-info/REQUESTED
 venv/lib/python3.12/site-packages/pip-24.0.dist-info/top_level.txt
 venv/lib/python3.12/site-packages/pip-24.0.dist-info/WHEEL
+__pycache__
