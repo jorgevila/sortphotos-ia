@@ -343,7 +343,7 @@ if __name__ == "__main__":
     parser.add_argument("destination_dir", help="Destination directory for sorted files.")
     parser.add_argument("--ignore-tags", nargs="*", default=[], help="EXIF tags to ignore")
     parser.add_argument("--ignore-groups", nargs="*", default=[], help="EXIF groups to ignore")
-    parser.add_argument("--ignore-ext", nargs="*", default=[], help="File extensions to ignore")
+    parser.add_argument("--allowed-ext", nargs="*", default=[".jpg", ".jpeg", ".png", ".mp4", ".mov"], help="File extensions to allow")
     parser.add_argument("--copy", action="store_true", help="Copy files instead of moving them.")
     parser.add_argument("--include-relative-path", action="store_true", help="Include the relative path in the filename.")
     args = parser.parse_args()
@@ -353,7 +353,7 @@ if __name__ == "__main__":
         args.destination_dir,
         args.ignore_tags,
         args.ignore_groups,
-        args.ignore_ext,
+        args.allowed_ext,
         args.copy,
         args.include_relative_path
     )
