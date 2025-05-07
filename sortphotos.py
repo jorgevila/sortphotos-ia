@@ -189,7 +189,7 @@ def extract_date_from_filename(filename):
                 # Extract the matched groups and join them with the appropriate separator
                 try:
                     # Join groups with appropriate separators if needed
-                    date_string = "".join(match.groups())
+                    date_string = match.group(0)
                     parsed_date = datetime.strptime(date_string, date_format)
                     # print(f"Parsed date: {parsed_date}")
                     # Validate the date (must be greater than 1950 or less than today)
@@ -197,7 +197,7 @@ def extract_date_from_filename(filename):
                     if parsed_date.year > 1950 and parsed_date < today:
                         return parsed_date
                 except ValueError as e:
-                    print(f"Error parsing date with format {date_format}: {e}")
+                    #print(f"Error parsing date with format {date_format}: {e}")
                     continue  # Try the next format for this pattern
 
     return None

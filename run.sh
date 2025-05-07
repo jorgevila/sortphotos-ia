@@ -24,34 +24,61 @@ function show_help {
     exit 0
 }
 
-# Check for --help argument
-if [[ "$1" == "--help" ]]; then
-    show_help
-fi
+# Default values
+IGNORE_TAGS="EXIF:CreateDate fileName"
+IGNORE_GROUPS="ICC_Profile MakerNotes IPTC"
+ALLOWED_EXT=".png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv"
+COPY_MODE=false
+INCLUDE_RELATIVE_PATH=true
+REMOVE_DUPLICATES=true
 
-# Ensure required arguments are provided
-if [[ -z "$1" || -z "$2" ]]; then
+# Ensure at least two positional arguments are provided
+if [[ $# -lt 2 ]]; then
     echo "Error: Missing required arguments."
     echo "Usage: $0 <source_dir> <dest_dir> [OPTIONS]"
-    echo "Run '$0 --help' for more details."
     exit 1
 fi
 
+# Positional arguments
 SOURCE_DIR="$1"
 DEST_DIR="$2"
-IGNORE_TAGS="${3:-'EXIF:CreateDate fileName'}"
-IGNORE_GROUPS="${4:-'ICC_Profile MakerNotes IPTC'}"
-ALLOWED_EXT="${5:-.png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv}"
-COPY_MODE="${6:-false}"
-INCLUDE_RELATIVE_PATH="${7:-true}"
-REMOVE_DUPLICATES=true  # Default behavior is to remove duplicates
+shift 2  # Shift past the positional arguments
 
-# Check for optional --cancel-remove-dups flag
-for arg in "$@"; do
-    if [[ "$arg" == "--cancel-remove-dups" ]]; then
-        REMOVE_DUPLICATES=false
-        break
-    fi
+# Parse optional arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --ignore-tags)
+            IGNORE_TAGS="$2"
+            shift 2
+            ;;
+        --ignore-groups)
+            IGNORE_GROUPS="$2"
+            shift 2
+            ;;
+        --allowed-ext)
+            ALLOWED_EXT="$2"
+            shift 2
+            ;;
+        --copy)
+            COPY_MODE=true
+            shift
+            ;;
+        --include-relative-path)
+            INCLUDE_RELATIVE_PATH=true
+            shift
+            ;;
+        --cancel-remove-dups)
+            REMOVE_DUPLICATES=false
+            shift
+            ;;
+        --help)
+            show_help
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            show_help
+            ;;
+    esac
 done
 
 LOG_FILE="/tmp/sortphotos.log"
@@ -87,6 +114,9 @@ LOG_FILE="/tmp/sortphotos.log"
     # Unzip all zip files and remove them
     echo "Unzip and remove zip files"
     find "$SOURCE_DIR" -type f -name "*.zip" -exec unzip -o {} -d $(dirname {}) \; -exec rm -v {} \;
+
+    echo "Checking size..."
+    du --si --max-depth=1 "$SOURCE_DIR" | sort -hr | head -n 10
 
     # Step 2: Locate requirements.txt relative to script location
     SCRIPT_DIR="$(dirname "$(realpath "$0")")"
