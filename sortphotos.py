@@ -141,7 +141,7 @@ def get_exif_date(file_path, json_path):
 
         # If no format matches, print an error and return None
         print(f"Error parsing EXIF date for {file_path}: {date_str}")
-        print(exif_data)
+        # print(exif_data)
     else:
         print(f"Warning: No EXIF date found for {file_path}")
     return None
@@ -178,20 +178,20 @@ def extract_date_from_filename(filename):
     # Try to match each pattern and parse the date
     for pattern, date_formats in reversed(pattern_format_map.items()):
         match = re.search(pattern, filename, re.IGNORECASE)
-        print(f"Trying pattern: {pattern} in {filename}")
-        print(f"Match: {match}")
-        print(f"Date formats: {date_formats}")
+        # print(f"Trying pattern: {pattern} in {filename}")
+        # print(f"Match: {match}")
+        # print(f"Date formats: {date_formats}")
         # If a match is found, extract the date components
         # and try to parse them with the corresponding formats
         if match:
             for date_format in date_formats:
-                print(f"Trying date format: {date_format}")
+                # print(f"Trying date format: {date_format}")
                 # Extract the matched groups and join them with the appropriate separator
                 try:
                     # Join groups with appropriate separators if needed
                     date_string = "".join(match.groups())
                     parsed_date = datetime.strptime(date_string, date_format)
-                    print(f"Parsed date: {parsed_date}")
+                    # print(f"Parsed date: {parsed_date}")
                     # Validate the date (must be greater than 1950 or less than today)
                     today = datetime.now()
                     if parsed_date.year > 1950 and parsed_date < today:
