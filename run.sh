@@ -159,4 +159,5 @@ LOG_FILE="/tmp/sortphotos.log"
     find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rvf {} +
 
     echo "Process complete!"
+
 } 2>&1 | tee "$LOG_FILE"

@@ -215,6 +215,11 @@ def get_unique_filename(target_dir, filename, md5_hash):
         existing_md5 = get_md5(target_path)
         if existing_md5 == md5_hash:
             print(f"Skipping {filename}: Identical MD5 already exists.")
+            
+            # Remove the source file since it's a duplicate
+            os.remove(filename)
+            print(f"Removed source file: {filename}")
+ 
             return None  # File already exists, identical content
 
         filename = f"{base_name}_{counter}{ext}"
