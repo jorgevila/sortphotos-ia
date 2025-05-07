@@ -49,8 +49,29 @@ LOG_FILE="/tmp/sortphotos.log"
 # Step 1: Remove duplicate files using fdupes, excluding virtual environment directory
 {
     echo "Removing duplicates in $SOURCE_DIR (excluding 'venv')..."
-    find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rf {} +
+    find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rvf {} +
     find "$SOURCE_DIR" -type d -not -path "*venv*" -exec fdupes -rdN "{}" +
+
+    # Extensions found
+    echo "Extensions found"
+    echo "<<<< extensions >>>>"
+    find . -type f | awk -F. '!a[$NF]++{print $NF}'
+    echo "<<<< end extensions >>>>"
+
+    echo "⚠️ Are you sure you want to continue? (y/n default: n)"
+    read -r response
+
+    if [[ "$response" == "y" ]]; then
+        echo "✅ Proceeding..."
+        # Add your script logic here
+    else
+        echo "❌ Cancelled."
+        exit 1
+    fi
+
+    # Unzip all zip files and remove them
+    echo "Unzip and remove zip files"
+    find "$SOURCE_DIR" -type f -name "*.zip" -exec unzip -o {} -d $(dirname {}) \; -exec rm -v {} \;
 
     # Step 2: Locate requirements.txt relative to script location
     SCRIPT_DIR="$(dirname "$(realpath "$0")")"
