@@ -13,13 +13,13 @@ function show_help {
     echo "Optional arguments:"
     echo "  --ignore-tags       EXIF tags to ignore (default: 'EXIF:CreateDate fileName')."
     echo "  --ignore-groups     EXIF groups to ignore (default: 'ICC_Profile MakerNotes IPTC')."
-    echo "  --ignore-ext        File extensions to ignore (default: '.txt .pdf')."
+    echo "  --allowed-ext       File extensions to allow (default: '.jpg .jpeg .png .mp4 .mov')."
     echo "  --copy              Copy files instead of moving them."
     echo "  --include-relative-path Include the relative path in the filename."
     echo "  --help              Display this help message."
     echo ""
     echo "Example usage:"
-    echo "  $0 /my/source /my/destination --ignore-tags 'ModifyDate' --ignore-groups 'File Composite' --ignore-ext '.txt .log' --copy --include-relative-path"
+    echo "  $0 /my/source /my/destination --ignore-tags 'ModifyDate' --ignore-groups 'File Composite' --allowed-ext '.jpg .png' --copy --include-relative-path"
     exit 0
 }
 
@@ -40,7 +40,7 @@ SOURCE_DIR="$1"
 DEST_DIR="$2"
 IGNORE_TAGS="${3:-'EXIF:CreateDate fileName'}"
 IGNORE_GROUPS="${4:-'ICC_Profile MakerNotes IPTC'}"
-IGNORE_EXT="${5:-'.txt .zip .log .gz .tar .tgz .tbz2 .tbz .tb2 .tb2.gz .tb2.bz2 .DS_Store'}"
+ALLOWED_EXT="${5:-'.png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv'}"
 COPY_MODE="${6:-false}"
 INCLUDE_RELATIVE_PATH="${7:-true}"
 
@@ -104,7 +104,7 @@ LOG_FILE="/tmp/sortphotos.log"
         RELATIVE_PATH_FLAG=""
     fi
 
-    python "$SCRIPT_DIR/sortphotos.py" "$SOURCE_DIR" "$DEST_DIR" --ignore-tags "$IGNORE_TAGS" --ignore-groups "$IGNORE_GROUPS" --ignore-ext "$IGNORE_EXT" $COPY_FLAG $RELATIVE_PATH_FLAG
+    python "$SCRIPT_DIR/sortphotos.py" "$SOURCE_DIR" "$DEST_DIR" --ignore-tags "$IGNORE_TAGS" --ignore-groups "$IGNORE_GROUPS" --allowed-ext "$ALLOWED_EXT" $COPY_FLAG $RELATIVE_PATH_FLAG
 
     echo "Process complete!"
 } 2>&1 | tee "$LOG_FILE"

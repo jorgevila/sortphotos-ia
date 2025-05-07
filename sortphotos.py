@@ -283,7 +283,7 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, source_dir, i
     else:
         print(f"Skipping {file_path}: Duplicate detected.")
 
-def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ignored_extensions, copy=False, include_relative_path=False):
+def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, allowed_extensions, copy=False, include_relative_path=False):
     """Processes all files recursively, caching EXIF data first."""
     moved_count = 0
     skipped_count = 0
@@ -303,11 +303,11 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, ig
         for file_name in files:
             file_path = os.path.join(root, file_name)
 
-            # Skip files with ignored extensions
-            if any(file_name.lower().endswith(ext.lower()) for ext in ignored_extensions):
-                print(f"Skipping {file_name}: Ignored extension.")
+            # Allow only files with specified extensions
+            if not any(file_name.lower().endswith(ext.lower()) for ext in allowed_extensions):
+                print(f"Skipping {file_name}: Not an allowed extension.")
                 skipped_count += 1
-                continue  # Skip ignored extensions
+                continue  # Skip files with disallowed extensions
 
             if os.path.isfile(file_path):
                 try:
