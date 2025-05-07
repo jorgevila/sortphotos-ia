@@ -16,10 +16,11 @@ function show_help {
     echo "  --allowed-ext       File extensions to allow (default: '.jpg .jpeg .png .mp4 .mov')."
     echo "  --copy              Copy files instead of moving them."
     echo "  --include-relative-path Include the relative path in the filename."
+    echo "  --cancel-remove-dups Skip duplicate removal (default: remove duplicates)."
     echo "  --help              Display this help message."
     echo ""
     echo "Example usage:"
-    echo "  $0 /my/source /my/destination --ignore-tags 'ModifyDate' --ignore-groups 'File Composite' --allowed-ext '.jpg .png' --copy --include-relative-path"
+    echo "  $0 /my/source /my/destination --ignore-tags 'ModifyDate' --ignore-groups 'File Composite' --allowed-ext '.jpg .png' --copy --include-relative-path --cancel-remove-dups"
     exit 0
 }
 
@@ -43,6 +44,15 @@ IGNORE_GROUPS="${4:-'ICC_Profile MakerNotes IPTC'}"
 ALLOWED_EXT="${5:-.png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv}"
 COPY_MODE="${6:-false}"
 INCLUDE_RELATIVE_PATH="${7:-true}"
+REMOVE_DUPLICATES=true  # Default behavior is to remove duplicates
+
+# Check for optional --cancel-remove-dups flag
+for arg in "$@"; do
+    if [[ "$arg" == "--cancel-remove-dups" ]]; then
+        REMOVE_DUPLICATES=false
+        break
+    fi
+done
 
 LOG_FILE="/tmp/sortphotos.log"
 
@@ -51,13 +61,17 @@ LOG_FILE="/tmp/sortphotos.log"
     echo "Remove empty directories in $SOURCE_DIR (excluding 'venv')..."
     find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rvf {} +
 
-    echo "Removing duplicates in $SOURCE_DIR (excluding 'venv')..."
-    find "$SOURCE_DIR" -type d -not -path "*venv*" -exec fdupes -rdN "{}" +
+    if [[ "$REMOVE_DUPLICATES" == "true" ]]; then
+        echo "Removing duplicates in $SOURCE_DIR (excluding 'venv')..."
+        find "$SOURCE_DIR" -type d -not -path "*venv*" -exec fdupes -rdN "{}" +
+    else
+        echo "Skipping duplicate removal as --cancel-remove-dups flag is set."
+    fi
 
     # Extensions found
     echo "Extensions found"
     echo "<<<< extensions >>>>"
-    find . -type f | awk -F. '!a[$NF]++{print $NF}'
+    find "$SOURCE_DIR" -type f | awk -F. '!a[$NF]++{print $NF}'
     echo "<<<< end extensions >>>>"
 
     echo "⚠️ Are you sure you want to continue? (y/n default: n)"
@@ -65,7 +79,6 @@ LOG_FILE="/tmp/sortphotos.log"
 
     if [[ "$response" == "y" ]]; then
         echo "✅ Proceeding..."
-        # Add your script logic here
     else
         echo "❌ Cancelled."
         exit 1
