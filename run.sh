@@ -40,7 +40,7 @@ SOURCE_DIR="$1"
 DEST_DIR="$2"
 IGNORE_TAGS="${3:-'EXIF:CreateDate fileName'}"
 IGNORE_GROUPS="${4:-'ICC_Profile MakerNotes IPTC'}"
-ALLOWED_EXT="${5:-'.png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv'}"
+ALLOWED_EXT="${5:-.png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv}"
 COPY_MODE="${6:-false}"
 INCLUDE_RELATIVE_PATH="${7:-true}"
 
@@ -106,7 +106,14 @@ LOG_FILE="/tmp/sortphotos.log"
         RELATIVE_PATH_FLAG=""
     fi
 
-    python "$SCRIPT_DIR/sortphotos.py" "$SOURCE_DIR" "$DEST_DIR" --ignore-tags "$IGNORE_TAGS" --ignore-groups "$IGNORE_GROUPS" --allowed-ext "$ALLOWED_EXT" $COPY_FLAG $RELATIVE_PATH_FLAG
+    IFS=' ' read -r -a ALLOWED_EXT_ARRAY <<< "$ALLOWED_EXT"
+    IFS=' ' read -r -a IGNORE_TAGS_ARRAY <<< "$IGNORE_TAGS"
+    IFS=' ' read -r -a IGNORE_GROUPS_ARRAY <<< "$IGNORE_GROUPS"
+
+    python "$SCRIPT_DIR/sortphotos.py" "$SOURCE_DIR" "$DEST_DIR" --ignore-tags "${IGNORE_TAGS_ARRAY[@]}" --ignore-groups "${IGNORE_GROUPS_ARRAY[@]}" --allowed-ext "${ALLOWED_EXT_ARRAY[@]}" $COPY_FLAG $RELATIVE_PATH_FLAG
+
+    echo "Remove empty directories in $SOURCE_DIR..."
+    find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rvf {} +
 
     echo "Process complete!"
 } 2>&1 | tee "$LOG_FILE"

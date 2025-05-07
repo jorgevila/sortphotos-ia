@@ -305,7 +305,7 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, al
 
             # Allow only files with specified extensions
             if not any(file_name.lower().endswith(ext.lower()) for ext in allowed_extensions):
-                print(f"Skipping {file_name}: Not an allowed extension.")
+                print(f"Skipping {file_name}: Not an allowed extension in {allowed_extensions}")                
                 skipped_count += 1
                 continue  # Skip files with disallowed extensions
 
@@ -340,13 +340,23 @@ def organize_files(source_dir, destination_dir, ignored_tags, ignored_groups, al
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Organize files by oldest EXIF or filename date.")
     parser.add_argument("source_dir", help="Source directory containing files.")
-    parser.add_argument("destination_dir", help="Destination directory for sorted files.")
+    parser.add_argument("destination_dir", help="Destination directory where files will be organized.")
     parser.add_argument("--ignore-tags", nargs="*", default=[], help="EXIF tags to ignore")
     parser.add_argument("--ignore-groups", nargs="*", default=[], help="EXIF groups to ignore")
     parser.add_argument("--allowed-ext", nargs="*", default=[".jpg", ".jpeg", ".png", ".mp4", ".mov"], help="File extensions to allow")
     parser.add_argument("--copy", action="store_true", help="Copy files instead of moving them.")
     parser.add_argument("--include-relative-path", action="store_true", help="Include the relative path in the filename.")
     args = parser.parse_args()
+
+    # Log the arguments used
+    print("\nArguments used:")
+    print(f"Source directory: {args.source_dir}")
+    print(f"Destination directory: {args.destination_dir}")
+    print(f"Ignore tags: {args.ignore_tags}")
+    print(f"Ignore groups: {args.ignore_groups}")
+    print(f"Allowed extensions: {args.allowed_ext}")
+    print(f"Copy mode: {args.copy}")
+    print(f"Include relative path: {args.include_relative_path}\n")
 
     organize_files(
         args.source_dir,
