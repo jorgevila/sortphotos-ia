@@ -48,8 +48,10 @@ LOG_FILE="/tmp/sortphotos.log"
 
 # Step 1: Remove duplicate files using fdupes, excluding virtual environment directory
 {
-    echo "Removing duplicates in $SOURCE_DIR (excluding 'venv')..."
+    echo "Remove empty directories in $SOURCE_DIR (excluding 'venv')..."
     find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rvf {} +
+
+    echo "Removing duplicates in $SOURCE_DIR (excluding 'venv')..."
     find "$SOURCE_DIR" -type d -not -path "*venv*" -exec fdupes -rdN "{}" +
 
     # Extensions found
