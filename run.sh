@@ -85,6 +85,12 @@ LOG_FILE="/tmp/sortphotos.log"
 
 # Step 1: Remove duplicate files using fdupes, excluding virtual environment directory
 {
+
+    # Unzip all zip files and remove them
+    echo "Unzip and remove zip files"
+    find "$SOURCE_DIR" -type f -name "*.zip" -exec unzip -o {} -d $(dirname {}) \; -exec rm -v {} \;
+
+
     echo "Remove empty directories in $SOURCE_DIR (excluding 'venv')..."
     find "$SOURCE_DIR" -mindepth 1 -type d -empty -not -path "*/venv/*" -exec rm -rvf {} +
 
@@ -110,10 +116,6 @@ LOG_FILE="/tmp/sortphotos.log"
         echo "❌ Cancelled."
         exit 1
     fi
-
-    # Unzip all zip files and remove them
-    echo "Unzip and remove zip files"
-    find "$SOURCE_DIR" -type f -name "*.zip" -exec unzip -o {} -d $(dirname {}) \; -exec rm -v {} \;
 
     echo "Checking size..."
     du --si --max-depth=1 "$SOURCE_DIR" | sort -hr | head -n 10

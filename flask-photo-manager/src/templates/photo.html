@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Photo Manager</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Photo Manager</h1>
+        <div class="photo-viewer">
+            <img src="{{ url_for('static', filename=photo.filename) }}" alt="Current Photo">
+        </div>
+        <div class="photo-actions">
+            <form action="{{ url_for('delete_photo', photo_id=photo.id) }}" method="post">
+                <button type="submit">Delete</button>
+            </form>
+            <form action="{{ url_for('rename_photo', photo_id=photo.id) }}" method="post">
+                <input type="text" name="new_name" placeholder="New name" required>
+                <button type="submit">Rename</button>
+            </form>
+            <form action="{{ url_for('move_photo', photo_id=photo.id) }}" method="post">
+                <input type="text" name="new_directory" placeholder="New directory" required>
+                <button type="submit">Move</button>
+            </form>
+            <form action="{{ url_for('next_photo') }}" method="get">
+                <button type="submit">Next Photo</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
