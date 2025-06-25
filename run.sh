@@ -27,7 +27,7 @@ function show_help {
 # Default values
 IGNORE_TAGS="EXIF:CreateDate fileName"
 IGNORE_GROUPS="ICC_Profile MakerNotes IPTC"
-ALLOWED_EXT=".png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv"
+ALLOWED_EXT=".png .jpg .avi .mp4 .3gp .mkv .JPG .m2ts .mov .AVI .NEF .jpeg .pdf .MOV .flv .mpg"
 COPY_MODE=false
 INCLUDE_RELATIVE_PATH=true
 REMOVE_DUPLICATES=true

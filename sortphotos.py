@@ -202,10 +202,12 @@ def extract_date_from_filename(filename):
 
     return None
 
-def get_unique_filename(target_dir, filename, md5_hash):
+def get_unique_filename(target_dir, filename, file_path):
     """Ensures uniqueness: same name with different MD5 gets suffixed."""
     base_name, ext = os.path.splitext(filename)
     counter = 1
+
+    md5_hash = get_md5(file_path)
 
     while True:
         target_path = os.path.join(target_dir, filename)
@@ -217,8 +219,10 @@ def get_unique_filename(target_dir, filename, md5_hash):
             print(f"Skipping {filename}: Identical MD5 already exists.")
             
             # Remove the source file since it's a duplicate
-            os.remove(filename)
-            print(f"Removed source file: {filename}")
+            print(f"Removing source file: {file_path}")
+
+            os.remove(file_path)
+            print(f"Removed source file: {file_path}")
  
             return None  # File already exists, identical content
 
@@ -228,8 +232,7 @@ def get_unique_filename(target_dir, filename, md5_hash):
 def move_or_copy_file(file_path, target_dir, file_date, json_path, source_dir, include_relative_path=False, copy=False):
     """Moves or copies file to correct 'year-month-day' directory, prefixing date, dimensions, duration, codec, or relative path to filename."""
     os.makedirs(target_dir, exist_ok=True)
-    md5_hash = get_md5(file_path)
-
+    
     original_filename = os.path.basename(file_path)
     date_prefix = file_date.strftime("%Y-%m-%d")
 
@@ -277,7 +280,7 @@ def move_or_copy_file(file_path, target_dir, file_date, json_path, source_dir, i
     new_filename = new_filename[:255]  # Limit filename length to 255 characters
     new_filename = new_filename.strip('_')  # Remove trailing underscores
 
-    target_path = get_unique_filename(target_dir, new_filename, md5_hash)
+    target_path = get_unique_filename(target_dir, new_filename, file_path)
     if target_path:
         if copy:
             shutil.copy2(file_path, target_path)
